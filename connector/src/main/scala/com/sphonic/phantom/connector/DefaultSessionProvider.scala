@@ -12,7 +12,19 @@ class DefaultSessionProvider (builder: ClusterBuilder) extends SessionProvider {
     builder(cb).build
   }
   
-  def getSession (keySpace: String): Session = ???
+  protected def initKeySpace (session: Session, keySpace: String): Session = {
+    // TODO - verify replication settings make sense
+    session.execute(s"CREATE KEYSPACE IF NOT EXISTS $keySpace WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};")
+    session.execute(s"USE $keySpace;")
+    session
+  }
+  
+  def getSession (keySpace: String): Session = {
+    // TODO - the connect method might throw exceptions, decide on error handling
+    // TODO - cache sessions per keySpace
+    val session = cluster.connect
+    initKeySpace(session, keySpace)
+  }
     
   
 }
