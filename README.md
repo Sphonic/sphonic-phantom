@@ -107,7 +107,31 @@ val keySpace = ContactPoints(hosts).keySpace("myApp")
 val tables = new MyTables(keySpace)
     
 tables.foos.store(Foo(UUID.randomUUID, "value"))
-```            
+```     
+
+Of course the container class is just a suggestion, you could alternatively create
+a factory function:
+
+```scala
+def createTables (keySpace: KeySpace): (Foos, Bars) =
+  (new Foos with keySpace.Connector, new Bars with keySpace.Connector)
+``` 
+
+And then use it like this:
+
+```scala
+val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val keySpace = ContactPoints(hosts).keySpace("myApp")
+    
+val (foos,bars) = createTables(keySpace)
+    
+foos.store(Foo(UUID.randomUUID, "value"))
+``` 
+
+The connector module does not prescribe a particular model here, but in most
+cases you want to separate the plumbing of Connector mixin (which always stays the
+same) from the dynamic keySpace creation (which depends on the environment).
+        
 
 
 Configuring the Driver
