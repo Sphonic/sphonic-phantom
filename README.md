@@ -17,15 +17,19 @@ solve the following issues with the original modules:
 * Make it easier to externalize configuration
 * Make it easier to use different configurations in test and production environments
 * Make it easier to configure the underlying Cassandra driver
-* Avoid fragile magic that has proven to not work reliably in the old modules
+* Avoid fragile magic that has proven to not work reliably in the old modules (e.g. the
+  attempts to detect a running Cassandra)
 * Avoid unnecessary dependencies (e.g. the old modules always pull in Zookeeper dependencies,
   no matter if you actually want to use it)
 * Avoid code quality issues of the original modules, namely:
     * Messy naming and packaging
     * Unnecessary mutability
-    * Both too much and too little separation of concerns in various parts of the old modules
     * Broken lifecycle management (e.g. in broken logic to attempt to recreate a closed Cluster instance)
     * Broken contracts (e.g. each Connector trait allows to define a keySpace, but only one of them will "win")
+    * Both too much and too little separation of concerns in various parts of the old modules
+      (e.g. too much in extensive delegation between multiple trait hierarchies that primarily
+      deal with simply providing a Session, too little in entangling Zookeeper lookup logic with
+      general Cluster creation) 
     * Dead code
        
 
