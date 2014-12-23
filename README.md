@@ -181,6 +181,7 @@ class MyTables (fooSpace: KeySpace, barSpace: KeySpace) {
   val bars = new Bars with barSpace.Connector
       
 }
+```
 
 And then use this container like this:
 
