@@ -6,7 +6,11 @@ import com.datastax.driver.core.Cluster
 class DefaultSessionProvider (builder: ClusterBuilder) extends SessionProvider {
 
   
-  def cluster: Cluster = ???
+  lazy val cluster: Cluster = {
+    // TODO - the original phantom modules had .withoutJMXReporting().withoutMetrics() as defaults, discuss best choices
+    val cb = Cluster.builder
+    builder(cb).build
+  }
   
   def getSession (keySpace: String): Session = ???
     
