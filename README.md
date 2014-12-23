@@ -65,7 +65,7 @@ If you want to use these two tables in your application, you can simply
 mix in a fully configured `Connector` trait like this:
 
 ```scala
-val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val hosts = Seq("35.0.0.1", "35.0.0.2")
 val keySpace = ContactPoints(hosts).keySpace("myApp")
     
 val foos = new Foos with keySpace.Connector
@@ -101,7 +101,7 @@ class MyTables (keySpace: KeySpace) {
 And then use it like this:
 
 ```scala
-val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val hosts = Seq("35.0.0.1", "35.0.0.2")
 val keySpace = ContactPoints(hosts).keySpace("myApp")
     
 val tables = new MyTables(keySpace)
@@ -120,7 +120,7 @@ def createTables (keySpace: KeySpace): (Foos, Bars) =
 And then use it like this:
 
 ```scala
-val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val hosts = Seq("35.0.0.1", "35.0.0.2")
 val keySpace = ContactPoints(hosts).keySpace("myApp")
     
 val (foos,bars) = createTables(keySpace)
@@ -143,7 +143,7 @@ a keySpace:
 
 ```scala
 // Not using the default port:
-val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val hosts = Seq("35.0.0.1", "35.0.0.2")
 val port = 9099
 val keySpace = ContactPoints(hosts, port).keySpace("myApp")
     
@@ -155,7 +155,7 @@ Additionally the API exposes the original `Cluster.Builder` API from
 the Java driver for further configuration:
 
 ```scala
-val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val hosts = Seq("35.0.0.1", "35.0.0.2")
 val keySpace = ContactPoints(hosts).withClusterBuilder(
   _.withRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE)
    .withReconnectionPolicy(new ConstantReconnectionPolicy(100L))
@@ -186,7 +186,7 @@ class MyTables (fooSpace: KeySpace, barSpace: KeySpace) {
 And then use this container like this:
 
 ```scala
-val hosts: Seq[String] = Seq("35.0.0.1", "35.0.0.2")
+val hosts = Seq("35.0.0.1", "35.0.0.2")
 
 val builder = ContactPoints(hosts)
 val fooSpace = builder.keySpace("myFoos")
