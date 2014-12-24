@@ -204,3 +204,46 @@ to let them share the underlying Cassandra `Cluster` instance.
 
 
 
+Using Zookeeper to look up Contact Points
+-----------------------------------------
+
+There is now a separate module `phantom-zookeeper` that you can use in addition to
+the `phantom-connector` module described in the previous sections. This module
+replicates most of the functionality of the original `phantom-zookeeper` module,
+but is focused on retro-fitting the old functionality on top of the new connector
+module and thus become a very tiny module with just the logic which is specific to Zookeeper.
+
+It is debatable how much value the lookup of contact points via Zookeeper adds. First,
+the contact points you pass to the Cassandra driver are just the initial set of hosts
+to try to connect to. Only a single contact point is required, but it is usually a
+good idea to provide more in case one node is temporarily down. But once the driver
+has connected to one node, it retrieves the addresses of all other nodes. Therefore
+you can easily add and remove nodes to your cluster without updating the phantom configuration
+unless one of the specified contact points gets removed. Secondly, the new connector module
+makes it quite easy to externalize this configuration, minimizing the value the zookeeper
+module adds to the connector.
+
+But in case you want to continue using Zookeeper for lookup, the API is very similar
+to that of the connector module:
+
+```scala
+// Using localhost:2181
+val keySpace = ZkContactPointLookup.local.keySpace("myApp")
+    
+val foos = new Foos with keySpace.Connector
+val bars = new Bars with keySpace.Connector
+```
+
+Or providing the Zookeeper connction explicitly:
+
+```scala
+val keySpace = ZkContactPointLookup("37.0.0.5", 2282).keySpace("myApp")
+    
+val foos = new Foos with keySpace.Connector
+val bars = new Bars with keySpace.Connector
+```
+ 
+
+
+
+
