@@ -8,6 +8,7 @@ object AnalyticsServer extends Build {
   val ScalaVersion = "2.10.4"
   val ScalaTestVersion = "2.1.0"
   val datastaxDriverVersion = "2.1.1"
+  val finagleVersion = "6.17.0"
 
   val publishSettings : Seq[Def.Setting[_]] = Seq(
     publishMavenStyle := true,
@@ -84,11 +85,25 @@ object AnalyticsServer extends Build {
     base = file("connector"),
     settings = Defaults.coreDefaultSettings ++ sharedSettings
   ).settings(
-      name := "phantom-connector",
-      libraryDependencies ++= Seq(
-        "com.datastax.cassandra"  %  "cassandra-driver-core"  % datastaxDriverVersion,
-        "com.twitter"             %% "util-core"              % "6.20.0"
-      )
+    name := "phantom-connector",
+    libraryDependencies ++= Seq(
+      "com.datastax.cassandra"  %  "cassandra-driver-core"  % datastaxDriverVersion,
+      "com.twitter"             %% "util-core"              % "6.20.0"
     )
+  )
+    
+  lazy val zookeeper = Project(
+    id = "zookeeper",
+    base = file("zookeeper"),
+    settings = Defaults.coreDefaultSettings ++ sharedSettings
+  ).settings(
+    name := "phantom-zookeeper",
+    libraryDependencies ++= Seq(
+      "com.twitter"             %% "finagle-serversets"     % finagleVersion exclude("org.slf4j", "slf4j-jdk14"),
+      "com.twitter"             %% "finagle-zookeeper"      % finagleVersion
+    )
+  ).dependsOn(
+    connector
+  )
 
 }
