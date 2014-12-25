@@ -234,7 +234,7 @@ val foos = new Foos with keySpace.Connector
 val bars = new Bars with keySpace.Connector
 ```
 
-Or providing the Zookeeper connction explicitly:
+Or providing the Zookeeper connection explicitly:
 
 ```scala
 val keySpace = ZkContactPointLookup("37.0.0.5", 2282).keySpace("myApp")
@@ -243,6 +243,56 @@ val foos = new Foos with keySpace.Connector
 val bars = new Bars with keySpace.Connector
 ```
  
+
+
+Testing
+-------
+
+The old `phantom-testing` module was relying on checks for a running Cassandra
+server that involved either checking available ports or checking Unix processes.
+These checks have proven to be unreliable as they opened doors for all sorts of
+race conditions, in particular when using phantom in a multi-project build.
+
+An alternative approach has been tested that involved running all projects
+in a single JVM and having traits mixed into the test classes that start
+the embedded Cassandra server only once, controlled by a JVM-wide singleton
+object and without even trying to look for an existing Cassandra server.
+
+Unfortunatley this approach does not work for the following two reasons:
+
+* phantom uses Scala SDK reflection to automatically determine the table name
+  and columns for each table. This does not work reliably as SDK reflection is
+  not thread-safe in Scala 2.10 (supposedly this is fixed in 2.11) and sbt
+  apparently runs multiple projects in parallel in separate ClassLoaders when
+  the JVM is not forked which eliminates the lock that phantom's `CassandraTable`
+  uses around its reflection code, as the same table classes are loaded multiple
+  times by the different ClassLoaders.
+  
+* For the same reason (sbt apparently using multiple ClassLoaders) there is also
+  no way to have a TestSuite mixin delegate to a global stateful singleton, as
+  each project with its own ClassLoader gets its own singleton instance. So there
+  is no way from within test helpers to manage state globally for the whole JVM.
+  
+The only approach for running embedded Cassandra that appeared to be working in
+multiple tests with the existing Eris Analytics project has been to let sbt
+manage the embedded Cassandra (as an sbt Task that gets triggered before the
+test task is run). 
+
+When run as an sbt task, a singleton is really global for the whole build
+as the build classes do not get loaded multiple times. In the Analytics
+code base this has been tested through defining these tasks locally in 
+the build class.
+
+From here it should be easy to extract the logic into a separate sbt
+plugin. The suggestion would be to call this project `phantom-sbt` and
+completely decomission the entire `phantom-testing` artifact, as it does
+not contain anything robust enough to keep around.
+
+Plugin classes are hopefully also only loaded once in a multi-project build,
+so that the global state management remains. This is the final aspect that
+still needs to be tested once there is a separate plugin.
+
+
 
 
 
