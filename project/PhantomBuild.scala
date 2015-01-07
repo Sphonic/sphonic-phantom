@@ -105,5 +105,20 @@ object AnalyticsServer extends Build {
   ).dependsOn(
     connector
   )
+  
+  lazy val sbt = Project(
+    id = "sbt",
+    base = file("sbt"),
+    settings = Defaults.coreDefaultSettings ++ sharedSettings
+  ).settings(
+    name := "phantom-sbt",
+    sbtPlugin := true,
+    libraryDependencies ++= Seq(
+      "org.cassandraunit"      % "cassandra-unit"  % "2.0.2.2"  excludeAll (
+	    ExclusionRule("org.slf4j", "slf4j-log4j12"),
+	    ExclusionRule("org.slf4j", "slf4j-jdk14")
+	  )
+	)
+  )
 
 }
