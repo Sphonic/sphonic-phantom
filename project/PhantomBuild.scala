@@ -10,7 +10,7 @@ object AnalyticsServer extends Build {
   val datastaxDriverVersion = "2.1.1"
   val finagleVersion = "6.17.0"
 
-  val publishSettings : Seq[Def.Setting[_]] = Seq(
+  val publishSettings: Seq[Def.Setting[_]] = Seq(
     publishMavenStyle := true,
     publishTo <<= version.apply {
       v =>
@@ -35,6 +35,12 @@ object AnalyticsServer extends Build {
       println("Using credentials from /.ivy2/.sphonic_credentials")
       credentials += Credentials(Path.userHome / ".ivy2" / ".sphonic_credentials")
     }
+  )
+  
+  val noPublish: Seq[Def.Setting[_]] = Seq(
+    publish := (),
+    publishLocal := (),
+    publishTo := None
   )
 
   val sharedSettings: Seq[Def.Setting[_]] = Seq(
@@ -73,11 +79,13 @@ object AnalyticsServer extends Build {
   lazy val root = Project(
 		id = "root",
 		base = file("."),
-		settings = Defaults.coreDefaultSettings
+		settings = Defaults.coreDefaultSettings ++ noPublish
   ).settings(
     name := "phantom-root"
 	).aggregate(
-		connector
+		connector,
+		zookeeper,
+		sbt
 	)
 
   lazy val connector = Project(
