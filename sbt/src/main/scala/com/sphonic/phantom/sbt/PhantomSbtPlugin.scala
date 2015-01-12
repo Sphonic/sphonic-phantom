@@ -25,7 +25,7 @@ object PhantomSbtPlugin extends Plugin {
         
       cassandraConfig := None,
       
-	    startEmbeddedCassandra := EmbeddedCassandra.start(cassandraConfig.value),
+	    startEmbeddedCassandra := EmbeddedCassandra.start(cassandraConfig.value, streams.value.log),
 	    
 	    test in Test <<= (test in Test).dependsOn(startEmbeddedCassandra),
 	    
@@ -42,7 +42,7 @@ object EmbeddedCassandra {
   
   private var started: Boolean = false
   
-  def start (config: Option[File]): Unit = {
+  def start (config: Option[File], logger: Logger): Unit = {
     this.synchronized {
       if (!started) {
         blocking {
@@ -50,20 +50,23 @@ object EmbeddedCassandra {
             EmbeddedCassandraServerHelper.mkdirs()
           } catch {
             case NonFatal(e) => {
-              // logger.error(e.getMessage)
+              logger.error(e.getMessage)
             }
           }
           config match {
               case Some(file) =>
-                println("Starting Cassandra in embedded mode with configuration from $file.")
+                logger.info("Starting Cassandra in embedded mode with configuration from $file.")
                 EmbeddedCassandraServerHelper.startEmbeddedCassandra(file, 
                     EmbeddedCassandraServerHelper.DEFAULT_TMP_DIR, EmbeddedCassandraServerHelper.DEFAULT_STARTUP_TIMEOUT)
               case None =>
-                println("Starting Cassandra in embedded mode with default configuration.")
+                logger.info("Starting Cassandra in embedded mode with default configuration.")
                 EmbeddedCassandraServerHelper.startEmbeddedCassandra()
             }
         }
         started = true
+      }
+      else {
+        logger.info("Embedded Cassandra has already been started")
       }
     }
   }
