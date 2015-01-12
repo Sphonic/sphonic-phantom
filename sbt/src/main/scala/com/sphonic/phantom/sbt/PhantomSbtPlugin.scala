@@ -11,7 +11,9 @@ object PhantomSbtPlugin extends Plugin {
   
   object PhantomKeys {
     
-	val startEmbeddedCassandra = TaskKey[Unit]("startEmbeddedCassandra")
+	  val startEmbeddedCassandra = TaskKey[Unit]("Starts embedded Cassandra")
+	  
+	  val cassandraConfig = SettingKey[Option[File]]("YAML file for Cassandra configuration")
 	
   }
   
@@ -20,8 +22,13 @@ object PhantomSbtPlugin extends Plugin {
     import PhantomKeys._
     
     val defaults: Seq[Setting[_]] = Seq(
-	    startEmbeddedCassandra := EmbeddedCassandra.start(),
+        
+      cassandraConfig := None,
+      
+	    startEmbeddedCassandra := EmbeddedCassandra.start(cassandraConfig.value),
+	    
 	    test in Test <<= (test in Test).dependsOn(startEmbeddedCassandra),
+	    
 	    fork := true
 	  )
   }
@@ -33,24 +40,28 @@ object EmbeddedCassandra {
   
   println("Initialize EmbeddedCassandra singleton.")
   
-  // val logger = LoggerFactory.getLogger("com.websudos.phantom.testing") // TODO - enable logging
-  
   private var started: Boolean = false
   
-  def start (): Unit = {
+  def start (config: Option[File]): Unit = {
     this.synchronized {
       if (!started) {
         blocking {
           try {
-            // logger.info("Starting Cassandra in Embedded mode.")
-            println("Starting Cassandra in Embedded mode.")
             EmbeddedCassandraServerHelper.mkdirs()
           } catch {
             case NonFatal(e) => {
               // logger.error(e.getMessage)
             }
           }
-          EmbeddedCassandraServerHelper.startEmbeddedCassandra()
+          config match {
+              case Some(file) =>
+                println("Starting Cassandra in embedded mode with configuration from $file.")
+                EmbeddedCassandraServerHelper.startEmbeddedCassandra(file, 
+                    EmbeddedCassandraServerHelper.DEFAULT_TMP_DIR, EmbeddedCassandraServerHelper.DEFAULT_STARTUP_TIMEOUT)
+              case None =>
+                println("Starting Cassandra in embedded mode with default configuration.")
+                EmbeddedCassandraServerHelper.startEmbeddedCassandra()
+            }
         }
         started = true
       }
