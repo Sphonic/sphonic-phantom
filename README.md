@@ -355,15 +355,10 @@ object and without even trying to look for an existing Cassandra server.
 
 Unfortunatley this approach does not work for the following two reasons:
 
-* phantom uses Scala SDK reflection to automatically determine the table name
-  and columns for each table. This does not work reliably as SDK reflection is
-  not thread-safe in Scala 2.10 (supposedly this is fixed in 2.11) and sbt
-  apparently runs multiple projects in parallel in separate ClassLoaders when
-  the JVM is not forked which eliminates the lock that phantom's `CassandraTable`
-  uses around its reflection code, as the same table classes are loaded multiple
-  times by the different ClassLoaders.
+* phantom uses Scala SDK reflection that does not work reliably when running
+  tests with multiple ClassLoaders as described above.
   
-* For the same reason (sbt apparently using multiple ClassLoaders) there is also
+* For the same reason (sbt using multiple ClassLoaders) there is also
   no way to have a TestSuite mixin delegate to a global stateful singleton, as
   each project with its own ClassLoader gets its own singleton instance. So there
   is no way from within test helpers to manage state globally for the whole JVM.
