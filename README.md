@@ -72,14 +72,24 @@ mix in a fully configured `Connector` trait like this:
 val hosts = Seq("35.0.0.1", "35.0.0.2")
 val keySpace = ContactPoints(hosts).keySpace("myApp")
     
-val foos = new Foos with keySpace.Connector
-val bars = new Bars with keySpace.Connector
+object foos extends Foos with keySpace.Connector
+object bars extends Bars with keySpace.Connector
 ```
     
 Creating the traits dynamically allows for more flexibility, in particular
 when it is desired to externalize the configuration or instantiate the tables
 with different connectors for test and production environments, as demonstrated
 in the following sections.
+
+Note that the otherwise equally valid syntax:
+
+```
+val foos = new Foos with keySpace.Connector
+val bars = new Bars with keySpace.Connector
+```
+
+does not work due to the way how the `CassandraTable` implementation determines
+the table name by reflection.
 
 
 
@@ -96,8 +106,8 @@ class that expects the fully configured `KeySpace` as a parameter:
 ```scala
 class MyTables (keySpace: KeySpace) {
     
-  val foos = new Foos with keySpace.Connector
-  val bars = new Bars with keySpace.Connector
+  object foos extends Foos with keySpace.Connector
+  object bars extends Bars with keySpace.Connector
       
 }
 ```
@@ -112,25 +122,6 @@ val tables = new MyTables(keySpace)
     
 tables.foos.store(Foo(UUID.randomUUID, "value"))
 ```     
-
-Of course the container class is just a suggestion, you could alternatively create
-a factory function:
-
-```scala
-def createTables (keySpace: KeySpace): (Foos, Bars) =
-  (new Foos with keySpace.Connector, new Bars with keySpace.Connector)
-``` 
-
-And then use it like this:
-
-```scala
-val hosts = Seq("35.0.0.1", "35.0.0.2")
-val keySpace = ContactPoints(hosts).keySpace("myApp")
-    
-val (foos,bars) = createTables(keySpace)
-    
-foos.store(Foo(UUID.randomUUID, "value"))
-``` 
 
 The connector module does not prescribe a particular model here, but in most
 cases you want to separate the plumbing of Connector mixin (which always stays the
@@ -181,8 +172,8 @@ you just need to prepare the table container class to expect two different
 ```scala
 class MyTables (fooSpace: KeySpace, barSpace: KeySpace) {
     
-  val foos = new Foos with fooSpace.Connector
-  val bars = new Bars with barSpace.Connector
+  object foos extends Foos with fooSpace.Connector
+  object bars extends Bars with barSpace.Connector
       
 }
 ```
@@ -230,8 +221,8 @@ to that of the connector module:
 // Using localhost:2181
 val keySpace = ZkContactPointLookup.local.keySpace("myApp")
     
-val foos = new Foos with keySpace.Connector
-val bars = new Bars with keySpace.Connector
+object foos extends Foos with keySpace.Connector
+object bars extends Bars with keySpace.Connector
 ```
 
 Or providing the Zookeeper connection explicitly:
@@ -239,21 +230,125 @@ Or providing the Zookeeper connection explicitly:
 ```scala
 val keySpace = ZkContactPointLookup("37.0.0.5", 2282).keySpace("myApp")
     
-val foos = new Foos with keySpace.Connector
-val bars = new Bars with keySpace.Connector
+object foos extends Foos with keySpace.Connector
+object bars extends Bars with keySpace.Connector
 ```
  
 
+Using the sbt Plugin
+--------------------
 
-Testing
--------
+The new sbt plugin starts Cassandra in embedded mode whenever the sbt test task
+is run. This allows to run a test suite that uses phantom without the need to 
+manually start a Cassandra server upfront.
+
+First the plugin must be included in your `plugins.sbt`:
+
+```
+addSbtPlugin("com.sphonic" %% "phantom-sbt" % "0.2.1")
+```
+
+Then you can apply its default settings in `build.sbt` like this:
+
+```
+PhantomPlugin.defaults
+```
+
+In a multi-project Scala build, you also need to add the import:
+
+```
+import com.sphonic.phantom.sbt.PhantomSbtPlugin._
+
+[...]
+
+lazy val fooProject = Project(
+  id = "foo",
+  base = file("foo"),
+  settings = someSharedSettings ++ PhantomPlugin.defaults
+).settings(
+  libraryDependencies ++= Seq(
+    [...]
+  )
+)
+```
+
+Once the default settings have been added, the plugin does the following 
+things:
+
+- Automatically starts Cassandra in embedded mode whenever the test task is run
+- Forces the tests for the projects that include the settings to always run in a
+  forked JVM as this is the only way to make parallel tests using phantom work.
+  (This is not caused by the implementation of this plugin or the new connector
+  or zookeeper artifacts, this is caused by implementation details in the official
+  `phantom-dsl` artifact, mainly the use of reflection which is not thread-safe
+  in Scala 2.10)
+
+If you want to specify a custom Cassandra configuration,
+you can do that with a setting:
+
+```
+PhantomKeys.cassandraConfig := baseDirectory.value / "config" / "cassandra.yaml"
+```
+
+
+Design Guidelines for Testing
+-----------------------------
+
+When designing a test suite that uses phantom, you should be aware of the
+three levels of parallelism that exist when tests are run by sbt
+and ScalaTest:
+
+* *Running tests for multiple projects in a single build*: Parallelism is controlled
+  by sbt. Projects always build in parallel (unless they depend on each other), 
+  per default within a single JVM, but with different ClassLoaders, alternatively 
+  in a separate JVM if you set `fork := true` in your build.
+
+* *Running multiple suites in a single project*: Parallelism is controlled
+  by ScalaTest. By default suites run in parallel. When sequential execution
+  is needed (which should be a rare case) ScalaTest offers a `Sequential` class
+  that allows to define a list of suites that need to run sequentially.
+  
+* *Running multiple tests in a single suite*: Parallelism is controlled
+  by ScalaTest. Here, by default the tests within a suite run sequentially.
+  When parallel execution is desired, ScalaTest offers a `ParallelTestExecution`
+  trait that can be mixed into your suite.
+  
+With these options in mind, the following guidelines apply for writing tests 
+for phantom's sbt plugin that uses Cassandra in embedded mode:
+
+* The plugin forces the tests to run in a forked JVM (you do not have to explicitly
+  set this option yourself). This is solely due
+  to implementation details of the main `phantom-dsl` artifact, that uses runtime
+  reflection to determine things like the table name or the columns defined for
+  a table. Since reflection is not thread-safe in Scala 2.10, phantom uses a lock
+  for these lookups, but when the tests are not forked, the fact that sbt runs
+  multiple projects in a separate ClassLoader circumnavigates the locks causing
+  intermittent exceptions in the reflection code. 
+  
+* For all other levels of parallelism there are no restrictions, but you need to 
+  keep in mind that all projects and all suites run against the same instance
+  of embedded Cassandra. Therefore, if you use the same table within multiple
+  suites, it is recommended to shield them from each other through the use of
+  different keyspaces, which is easy to do with the new phantom-connector API.
+  The names of the keyspaces for tests can be hardcoded within the suites as they do
+  not depend on the environment.
+  
+* If you code a single suite with the default (tests run sequentially) and you use
+  all test data in read-mode only, you can populate the tables in a `beforeAll`
+  method and then use them in all tests. If the tests write data, you can truncate
+  tables before each test method.
+  
+
+
+Background on Design Decisions for Testing
+------------------------------------------
 
 The old `phantom-testing` module was relying on checks for a running Cassandra
 server that involved either checking available ports or checking Unix processes.
 These checks have proven to be unreliable as they opened doors for all sorts of
 race conditions, in particular when using phantom in a multi-project build.
 
-An alternative approach has been tested that involved running all projects
+An alternative approach had been tested that involved running all projects
 in a single JVM and having traits mixed into the test classes that start
 the embedded Cassandra server only once, controlled by a JVM-wide singleton
 object and without even trying to look for an existing Cassandra server.
@@ -276,21 +371,8 @@ Unfortunatley this approach does not work for the following two reasons:
 The only approach for running embedded Cassandra that appeared to be working in
 multiple tests with the existing Eris Analytics project has been to let sbt
 manage the embedded Cassandra (as an sbt Task that gets triggered before the
-test task is run). 
-
-When run as an sbt task, a singleton is really global for the whole build
-as the build classes do not get loaded multiple times. In the Analytics
-code base this has been tested through defining these tasks locally in 
-the build class.
-
-From here it should be easy to extract the logic into a separate sbt
-plugin. The suggestion would be to call this project `phantom-sbt` and
-completely decomission the entire `phantom-testing` artifact, as it does
-not contain anything robust enough to keep around.
-
-Plugin classes are hopefully also only loaded once in a multi-project build,
-so that the global state management remains. This is the final aspect that
-still needs to be tested once there is a separate plugin.
+test task is run). When run as an sbt task, a singleton is really global for 
+the whole build as the build classes do not get loaded multiple times.
 
 
 
