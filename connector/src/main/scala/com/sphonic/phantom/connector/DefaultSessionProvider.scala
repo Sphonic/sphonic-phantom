@@ -4,6 +4,12 @@ import com.datastax.driver.core.Session
 import com.datastax.driver.core.Cluster
 import scala.collection.concurrent.TrieMap
 
+/**
+ * The default SessionProvider implementation, which should be sufficient
+ * for the most use cases.
+ * 
+ * This implementation caches `Session` instances per keySpace.
+ */
 class DefaultSessionProvider (builder: ClusterBuilder) extends SessionProvider {
 
   
@@ -16,6 +22,10 @@ class DefaultSessionProvider (builder: ClusterBuilder) extends SessionProvider {
     builder(cb).build
   }
   
+  /**
+   * Initializes the keySpace with the given name on
+   * the specified Session.
+   */
   protected def initKeySpace (session: Session, keySpace: String): Session = {
     // TODO - verify replication settings make sense
     session.execute(s"CREATE KEYSPACE IF NOT EXISTS $keySpace WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};")
@@ -23,6 +33,9 @@ class DefaultSessionProvider (builder: ClusterBuilder) extends SessionProvider {
     session
   }
   
+  /**
+   * Creates a new Session for the specified keySpace.
+   */
   protected def createSession (keySpace: String): Session = {
     // TODO - the connect method might throw exceptions, decide on error handling
     val session = cluster.connect
@@ -35,6 +48,13 @@ class DefaultSessionProvider (builder: ClusterBuilder) extends SessionProvider {
   
 }
 
+/**
+ * Thread-safe cache implementation. 
+ * 
+ * Given the expected use cases (a map with often just one or at most
+ * a handful of elements in it and being accessed infrequently), this
+ * implementation is not aggressively optimized and focusses on thread-safety.
+ */
 class Cache[K,V] {
 
   /* this implementation uses putIfAbsent from the underlying TrieMap as
@@ -46,6 +66,14 @@ class Cache[K,V] {
     lazy val get: V = value
   }
   
+  /**
+   * Get the element for the specified key
+   * if it has already been set or otherwise
+   * associate the key with the given (lazy) value.
+   * 
+   * @returns the value previously associated with the key
+   * or (if no value had been previously set) the specified new value.
+   */
   def getOrElseUpdate (key: K, op: => V): V = {
     val lazyOp = new Lazy(op)
     map.putIfAbsent(key, lazyOp) match {
