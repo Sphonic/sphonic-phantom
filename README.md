@@ -298,17 +298,17 @@ When designing a test suite that uses phantom, you should be aware of the
 three levels of parallelism that exist when tests are run by sbt
 and ScalaTest:
 
-* *Running tests for multiple projects in a single build*: Parallelism is controlled
+* **Running tests for multiple projects in a single build**: Parallelism is controlled
   by sbt. Projects always build in parallel (unless they depend on each other), 
   per default within a single JVM, but with different ClassLoaders, alternatively 
   in a separate JVM if you set `fork := true` in your build.
 
-* *Running multiple suites in a single project*: Parallelism is controlled
+* **Running multiple suites in a single project**: Parallelism is controlled
   by ScalaTest. By default suites run in parallel. When sequential execution
   is needed (which should be a rare case) ScalaTest offers a `Sequential` class
   that allows to define a list of suites that need to run sequentially.
   
-* *Running multiple tests in a single suite*: Parallelism is controlled
+* **Running multiple tests in a single suite**: Parallelism is controlled
   by ScalaTest. Here, by default the tests within a suite run sequentially.
   When parallel execution is desired, ScalaTest offers a `ParallelTestExecution`
   trait that can be mixed into your suite.
