@@ -244,19 +244,19 @@ manually start a Cassandra server upfront.
 
 First the plugin must be included in your `plugins.sbt`:
 
-```
+```scala
 addSbtPlugin("com.sphonic" %% "phantom-sbt" % "0.2.1")
 ```
 
 Then you can apply its default settings in `build.sbt` like this:
 
-```
+```scala
 PhantomPlugin.defaults
 ```
 
 In a multi-project Scala build, you also need to add the import:
 
-```
+```scala
 import com.sphonic.phantom.sbt.PhantomSbtPlugin._
 
 [...]
@@ -286,7 +286,7 @@ things:
 If you want to specify a custom Cassandra configuration,
 you can do that with a setting:
 
-```
+```scala
 PhantomKeys.cassandraConfig := baseDirectory.value / "config" / "cassandra.yaml"
 ```
 
