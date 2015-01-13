@@ -6,9 +6,64 @@ import scala.concurrent.blocking
 import scala.util.control.NonFatal
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 
+/**
+ * sbt plugin for starting Cassandra in embedded mode before running
+ * the tests.
+ * 
+ * First the plugin must be included in your `plugins.sbt`:
+ * 
+ * {{{
+ * addSbtPlugin("com.sphonic" %% "phantom-sbt" % "0.2.1")
+ * }}}
+ * 
+ * Then you can apply its default settings in `build.sbt` like this:
+ * 
+ * {{{
+ * PhantomPlugin.defaults
+ * }}}
+ * 
+ * In a multi-project Scala build, you also need to add the import:
+ * 
+ * {{{
+ * import com.sphonic.phantom.sbt.PhantomSbtPlugin._
+ * 
+ * [...]
+ * 
+ * lazy val fooProject = Project(
+ *   id = "foo",
+ *   base = file("foo"),
+ *   settings = someSharedSettings ++ PhantomPlugin.defaults
+ * ).settings(
+ *   libraryDependencies ++= Seq(
+ *     [...]
+ *   )
+ * )
+ * }}}
+ * 
+ * Once the default settings have been added, the plugin does the following 
+ * things:
+ * 
+ * - Automatically starts Cassandra in embedded mode whenever the test task is run
+ * - Forces the tests for the projects that include the settings to always run in a
+ *   forked JVM as this is the only way to make parallel tests using phantom work.
+ *   (This is not caused by the implementation of this plugin or the new connector
+ *   or zookeeper artifacts, this is caused by implementation details in the official
+ *   `phantom-dsl` artifact, mainly the use of reflection which is not thread-safe
+ *   in Scala 2.10)
+ * 
+ * If you want to specify a custom Cassandra configuration,
+ * you can do that with a setting:
+ * 
+ * {{{
+ * PhantomKeys.cassandraConfig := baseDirectory.value / "config" / "cassandra.yaml"
+ * }}}
+ */
 object PhantomSbtPlugin extends Plugin {
 
   
+  /**
+   * Keys for all settings of this plugin.
+   */
   object PhantomKeys {
     
 	  val startEmbeddedCassandra = TaskKey[Unit]("Starts embedded Cassandra")
@@ -18,9 +73,15 @@ object PhantomSbtPlugin extends Plugin {
   }
   
   
+  /**
+   * Provides the default settings to be added to a build.
+   */
   object PhantomPlugin {
     import PhantomKeys._
     
+    /**
+     * The default settings to be added to a build.
+     */
     val defaults: Seq[Setting[_]] = Seq(
         
       cassandraConfig := None,
@@ -36,12 +97,21 @@ object PhantomSbtPlugin extends Plugin {
   
 }
 
+/**
+ * Singleton object that is responsible for starting
+ * Cassandra in embedded mode, but only once.
+ * Subsequent calls to `start` will be ignored.
+ */
 object EmbeddedCassandra {
   
   println("Initialize EmbeddedCassandra singleton.")
   
   private var started: Boolean = false
   
+  /**
+   * Starts Cassandra in embedded mode if it has not been
+   * started yet.
+   */
   def start (config: Option[File], logger: Logger): Unit = {
     this.synchronized {
       if (!started) {
