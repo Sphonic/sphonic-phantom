@@ -36,7 +36,7 @@ object AnalyticsServer extends Build {
       credentials += Credentials(Path.userHome / ".ivy2" / ".sphonic_credentials")
     }
   )
-  
+
   val noPublish: Seq[Def.Setting[_]] = Seq(
     publish := (),
     publishLocal := (),
@@ -99,7 +99,7 @@ object AnalyticsServer extends Build {
       "com.twitter"             %% "util-core"              % "6.20.0"
     )
   )
-    
+
   lazy val zookeeper = Project(
     id = "zookeeper",
     base = file("zookeeper"),
@@ -113,7 +113,7 @@ object AnalyticsServer extends Build {
   ).dependsOn(
     connector
   )
-  
+
   lazy val sbt = Project(
     id = "sbt",
     base = file("sbt"),
@@ -123,10 +123,10 @@ object AnalyticsServer extends Build {
     sbtPlugin := true,
     libraryDependencies ++= Seq(
       "org.cassandraunit"      % "cassandra-unit"  % "2.0.2.2"  excludeAll (
-	    ExclusionRule("org.slf4j", "slf4j-log4j12"),
-	    ExclusionRule("org.slf4j", "slf4j-jdk14")
-	  )
-	)
+        ExclusionRule("org.slf4j", "slf4j-log4j12"),
+        ExclusionRule("org.slf4j", "slf4j-jdk14")
+      )
+    )
   )
 
 }
