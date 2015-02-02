@@ -7,7 +7,7 @@ object AnalyticsServer extends Build {
 
   val ScalaVersion = "2.10.4"
   val ScalaTestVersion = "2.1.0"
-  val datastaxDriverVersion = "2.1.1"
+  val datastaxDriverVersion = "2.1.3"
   val finagleVersion = "6.17.0"
 
   val publishSettings: Seq[Def.Setting[_]] = Seq(
