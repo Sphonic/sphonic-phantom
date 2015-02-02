@@ -1,5 +1,7 @@
 package com.sphonic.phantom.sbt
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import sbt._
 import sbt.Keys._
 import scala.concurrent.blocking
@@ -89,7 +91,11 @@ object PhantomSbtPlugin extends Plugin {
 	    startEmbeddedCassandra := EmbeddedCassandra.start(cassandraConfig.value, streams.value.log),
 	    
 	    test in Test <<= (test in Test).dependsOn(startEmbeddedCassandra),
-	    
+
+	    testOnly in Test <<= (testOnly in Test).dependsOn(startEmbeddedCassandra),
+
+	    testQuick in Test <<= (testQuick in Test).dependsOn(startEmbeddedCassandra),
+
 	    fork := true
 	  )
   }
@@ -105,41 +111,40 @@ object PhantomSbtPlugin extends Plugin {
 object EmbeddedCassandra {
   
   println("Initialize EmbeddedCassandra singleton.")
-  
-  private var started: Boolean = false
+
+  private val starting = new AtomicBoolean(false)
+  private val started = new AtomicBoolean(false)
   
   /**
    * Starts Cassandra in embedded mode if it has not been
    * started yet.
    */
   def start (config: Option[File], logger: Logger): Unit = {
-    this.synchronized {
-      if (!started) {
-        blocking {
-          try {
-            EmbeddedCassandraServerHelper.mkdirs()
-          } catch {
-            case NonFatal(e) => {
-              logger.error(e.getMessage)
-            }
+    if (!started.get && !starting.getAndSet(true)) {
+      try{
+        try {
+          EmbeddedCassandraServerHelper.mkdirs()
+        } catch {
+          case NonFatal(e) => {
+            logger.error(e.getMessage)
           }
-          config match {
-              case Some(file) =>
-                logger.info("Starting Cassandra in embedded mode with configuration from $file.")
-                EmbeddedCassandraServerHelper.startEmbeddedCassandra(file, 
-                    EmbeddedCassandraServerHelper.DEFAULT_TMP_DIR, EmbeddedCassandraServerHelper.DEFAULT_STARTUP_TIMEOUT)
-              case None =>
-                logger.info("Starting Cassandra in embedded mode with default configuration.")
-                EmbeddedCassandraServerHelper.startEmbeddedCassandra()
-            }
         }
-        started = true
-      }
-      else {
-        logger.info("Embedded Cassandra has already been started")
+        config match {
+          case Some(file) =>
+            logger.info("Starting Cassandra in embedded mode with configuration from $file.")
+            EmbeddedCassandraServerHelper.startEmbeddedCassandra(file,
+                EmbeddedCassandraServerHelper.DEFAULT_TMP_DIR, EmbeddedCassandraServerHelper.DEFAULT_STARTUP_TIMEOUT)
+          case None =>
+            logger.info("Starting Cassandra in embedded mode with default configuration.")
+            EmbeddedCassandraServerHelper.startEmbeddedCassandra()
+        }
+        started.set(true)
+      } finally {
+        starting.set(false)
       }
     }
+    else {
+      logger.info("Embedded Cassandra has already been started")
+    }
   }
-
-  
 }

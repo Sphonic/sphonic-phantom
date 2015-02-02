@@ -45,7 +45,7 @@ object AnalyticsServer extends Build {
 
   val sharedSettings: Seq[Def.Setting[_]] = Seq(
     organization := "com.sphonic",
-    version := "0.2.1",
+    version := "0.2.2",
     scalaVersion := ScalaVersion,
     resolvers ++= Seq(
       "Typesafe repository"              at "http://repo.typesafe.com/typesafe/releases/",
