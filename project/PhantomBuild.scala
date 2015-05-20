@@ -12,29 +12,8 @@ object AnalyticsServer extends Build {
 
   val publishSettings: Seq[Def.Setting[_]] = Seq(
     publishMavenStyle := true,
-    publishTo <<= version.apply {
-      v =>
-        val nexus = "http://artifactory.sphoniclabs.net:8081/"
-        if (v.trim.endsWith("SNAPSHOT"))
-          Some("snapshots" at nexus + "artifactory/sphonic-snapshot-local/")
-        else
-          Some("releases" at nexus + "artifactory/sphonic-releases-local/")
-    },
     publishArtifact in Test := false,
     pomIncludeRepository := { _ => true },
-    if (System.getenv().containsKey("TRAVIS_JOB_ID")) {
-      val pass: String = System.getenv().get("TRAVIS_SBT_CREDENTIALS")
-      println("Using encrypted Travis credentials.")
-      credentials += Credentials(
-        "Artifactory Realm",
-        "artifactory.sphoniclabs.net",
-        "buildbot",
-        pass
-      )
-    } else {
-      println("Using credentials from /.ivy2/.sphonic_credentials")
-      credentials += Credentials(Path.userHome / ".ivy2" / ".sphonic_credentials")
-    }
   )
 
   val noPublish: Seq[Def.Setting[_]] = Seq(
@@ -54,8 +33,6 @@ object AnalyticsServer extends Build {
       "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
       "Twitter Repository"               at "http://maven.twttr.com",
       "Websudos releases"                at "http://maven.websudos.co.uk/ext-release-local",
-      "Sphonic snapshots"                at "http://artifactory.sphoniclabs.net:8081/artifactory/sphonic-snapshot-local/",
-      "Sphonic releases"                 at "http://artifactory.sphoniclabs.net:8081/artifactory/sphonic-releases-local/",
       "jgit-repo"                        at "http://download.eclipse.org/jgit/maven"
     ),
     unmanagedSourceDirectories in Compile <<= (scalaSource in Compile)(Seq(_)),
