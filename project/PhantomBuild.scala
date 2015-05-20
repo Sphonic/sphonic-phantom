@@ -1,3 +1,18 @@
+/*
+ * Copyright 2014-2015 Sphonic Ltd. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import sbt._
 import sbt.Keys._
 import sbtassembly.Plugin._
@@ -12,8 +27,29 @@ object AnalyticsServer extends Build {
 
   val publishSettings: Seq[Def.Setting[_]] = Seq(
     publishMavenStyle := true,
+    publishTo := {
+      val nexus = "https://nexus.sphoniclabs.net/nexus/content/repositories/"
+      if (isSnapshot.value)
+        Some("snapshots" at nexus + "snapshots/")
+      else
+        Some("releases"  at nexus + "releases/")
+
+    },
     publishArtifact in Test := false,
     pomIncludeRepository := { _ => true },
+    if (System.getenv().containsKey("TRAVIS_JOB_ID")) {
+      val pass: String = System.getenv().get("TRAVIS_SBT_CREDENTIALS")
+      println("Using encrypted Travis credentials.")
+      credentials += Credentials(
+        "Artifactory Realm",
+        "artifactory.sphoniclabs.net",
+        "buildbot",
+        pass
+      )
+    } else {
+      println("Using credentials from /.ivy2/.sphonic_nexus")
+      credentials += Credentials(Path.userHome / ".ivy2" / ".sphonic_nexus")
+    }
   )
 
   val noPublish: Seq[Def.Setting[_]] = Seq(
@@ -33,6 +69,8 @@ object AnalyticsServer extends Build {
       "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
       "Twitter Repository"               at "http://maven.twttr.com",
       "Websudos releases"                at "http://maven.websudos.co.uk/ext-release-local",
+      "Sphonic snapshots"                at "http://artifactory.sphoniclabs.net:8081/artifactory/sphonic-snapshot-local/",
+      "Sphonic releases"                 at "http://artifactory.sphoniclabs.net:8081/artifactory/sphonic-releases-local/",
       "jgit-repo"                        at "http://download.eclipse.org/jgit/maven"
     ),
     unmanagedSourceDirectories in Compile <<= (scalaSource in Compile)(Seq(_)),
