@@ -20,10 +20,10 @@ import AssemblyKeys._
 
 object AnalyticsServer extends Build {
 
-  val ScalaVersion = "2.10.4"
-  val ScalaTestVersion = "2.1.0"
+  val ScalaVersion = "2.10.5"
+  val ScalaTestVersion = "2.2.4"
   val datastaxDriverVersion = "2.1.3"
-  val finagleVersion = "6.17.0"
+  val finagleVersion = "6.25.0"
 
   val publishSettings: Seq[Def.Setting[_]] = Seq(
     publishMavenStyle := true,
@@ -68,9 +68,6 @@ object AnalyticsServer extends Build {
       "Sonatype"                         at "https://oss.sonatype.org/content/repositories/releases",
       "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
       "Twitter Repository"               at "http://maven.twttr.com",
-      "Websudos releases"                at "http://maven.websudos.co.uk/ext-release-local",
-      "Sphonic snapshots"                at "http://artifactory.sphoniclabs.net:8081/artifactory/sphonic-snapshot-local/",
-      "Sphonic releases"                 at "http://artifactory.sphoniclabs.net:8081/artifactory/sphonic-releases-local/",
       "jgit-repo"                        at "http://download.eclipse.org/jgit/maven"
     ),
     unmanagedSourceDirectories in Compile <<= (scalaSource in Compile)(Seq(_)),
@@ -109,6 +106,7 @@ object AnalyticsServer extends Build {
     settings = Defaults.coreDefaultSettings ++ sharedSettings
   ).settings(
     name := "phantom-connector",
+    crossScalaVersions := Seq("2.10.5", "2.11.5"),
     libraryDependencies ++= Seq(
       "com.datastax.cassandra"  %  "cassandra-driver-core"  % datastaxDriverVersion,
       "com.twitter"             %% "util-core"              % "6.20.0"
