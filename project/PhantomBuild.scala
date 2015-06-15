@@ -108,7 +108,6 @@ object AnalyticsServer extends Build {
     name := "phantom-root"
 	).aggregate(
 		connector,
-		zookeeper,
 		sbt
 	)
 
@@ -123,20 +122,6 @@ object AnalyticsServer extends Build {
       "com.datastax.cassandra"  %  "cassandra-driver-core"  % datastaxDriverVersion,
       "com.twitter"             %% "util-core"              % "6.20.0"
     )
-  )
-
-  lazy val zookeeper = Project(
-    id = "zookeeper",
-    base = file("zookeeper"),
-    settings = Defaults.coreDefaultSettings ++ sharedSettings
-  ).settings(
-    name := "phantom-zookeeper",
-    libraryDependencies ++= Seq(
-      "com.twitter"             %% "finagle-serversets"     % finagleVersion exclude("org.slf4j", "slf4j-jdk14"),
-      "com.twitter"             %% "finagle-zookeeper"      % finagleVersion
-    )
-  ).dependsOn(
-    connector
   )
 
   lazy val sbt = Project(
@@ -155,3 +140,4 @@ object AnalyticsServer extends Build {
   )
 
 }
+
