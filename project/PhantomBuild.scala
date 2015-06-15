@@ -37,18 +37,19 @@ object AnalyticsServer extends Build {
     },
     publishArtifact in Test := false,
     pomIncludeRepository := { _ => true },
-    if (System.getenv().containsKey("TRAVIS_JOB_ID")) {
-      val pass: String = System.getenv().get("TRAVIS_SBT_CREDENTIALS")
-      println("Using encrypted Travis credentials.")
+    if (System.getenv().containsKey("CI_USERNAME") && System.getenv().containsKey("CI_PASSWORD")) {
+      val username: String = System.getenv().get("CI_USERNAME")
+      val password: String = System.getenv().get("CI_PASSWORD")
+      println("Using encrypted CI credentials.")
       credentials += Credentials(
-        "Artifactory Realm",
-        "artifactory.sphoniclabs.net",
-        "buildbot",
-        pass
+        "Sonatype Nexus Repository Manager",
+        "nexus.sphoniclabs.net",
+        username,
+        password
       )
     } else {
-      println("Using credentials from /.ivy2/.sphonic_nexus")
-      credentials += Credentials(Path.userHome / ".ivy2" / ".sphonic_nexus")
+      println("Using credentials from /.ivy2/.sphonic_credentials")
+      credentials += Credentials(Path.userHome / ".ivy2" / ".sphonic_credentials")
     }
   )
 
@@ -63,13 +64,24 @@ object AnalyticsServer extends Build {
     version := "0.2.1",
     scalaVersion := ScalaVersion,
     resolvers ++= Seq(
-      "Typesafe repository"              at "http://repo.typesafe.com/typesafe/releases/",
-      "Sonatype Scala-Tools"             at "https://oss.sonatype.org/content/groups/scala-tools/",
-      "Sonatype"                         at "https://oss.sonatype.org/content/repositories/releases",
-      "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
-      "Twitter Repository"               at "http://maven.twttr.com",
-      "jgit-repo"                        at "http://download.eclipse.org/jgit/maven"
+      "sphonic nexus public (maven2)" at "https://nexus.sphoniclabs.net/nexus/content/groups/public",
+      "sphonic nexus public (maven1)" at "https://nexus.sphoniclabs.net/nexus/content/groups/public1",
+      "sphonic nexus snapshots" at "https://nexus.sphoniclabs.net/nexus/content/repositories/snapshots",
+      "sphonic nexus releases" at "https://nexus.sphoniclabs.net/nexus/content/repositories/releases"
     ),
+    if (System.getenv().containsKey("CI") || System.getenv().containsKey("OVERRIDE_RESOLVERS")) {
+      println("Using Nexus for dependency resolution")
+      externalResolvers <<= (resolvers).map(Resolver.defaultLocal +: _)
+    } else {
+      resolvers ++= Seq(
+        "Typesafe repository"              at "http://repo.typesafe.com/typesafe/releases/",
+        "Sonatype Scala-Tools"             at "https://oss.sonatype.org/content/groups/scala-tools/",
+        "Sonatype"                         at "https://oss.sonatype.org/content/repositories/releases",
+        "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
+        "Twitter Repository"               at "http://maven.twttr.com",
+        "jgit-repo"                        at "http://download.eclipse.org/jgit/maven"
+      )
+    },
     unmanagedSourceDirectories in Compile <<= (scalaSource in Compile)(Seq(_)),
     scalacOptions ++= Seq(
       "-language:postfixOps",
