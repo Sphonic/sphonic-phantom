@@ -24,40 +24,15 @@ import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 /**
  * sbt plugin for starting Cassandra in embedded mode before running
  * the tests.
- * 
+ *
  * First the plugin must be included in your `plugins.sbt`:
- * 
+ *
  * {{{
- * addSbtPlugin("com.sphonic" %% "phantom-sbt" % "0.2.1")
+ * addSbtPlugin("com.sphonic" %% "phantom-sbt" % "0.3.0")
  * }}}
- * 
- * Then you can apply its default settings in `build.sbt` like this:
- * 
- * {{{
- * PhantomPlugin.defaults
- * }}}
- * 
- * In a multi-project Scala build, you also need to add the import:
- * 
- * {{{
- * import com.sphonic.phantom.sbt.PhantomSbtPlugin._
- * 
- * [...]
- * 
- * lazy val fooProject = Project(
- *   id = "foo",
- *   base = file("foo"),
- *   settings = someSharedSettings ++ PhantomPlugin.defaults
- * ).settings(
- *   libraryDependencies ++= Seq(
- *     [...]
- *   )
- * )
- * }}}
- * 
- * Once the default settings have been added, the plugin does the following 
+ The plugin does the following
  * things:
- * 
+ *
  * - Automatically starts Cassandra in embedded mode whenever the test task is run
  * - Forces the tests for the projects that include the settings to always run in a
  *   forked JVM as this is the only way to make parallel tests using phantom work.
@@ -65,51 +40,37 @@ import org.cassandraunit.utils.EmbeddedCassandraServerHelper
  *   or zookeeper artifacts, this is caused by implementation details in the official
  *   `phantom-dsl` artifact, mainly the use of reflection which is not thread-safe
  *   in Scala 2.10)
- * 
+ *
  * If you want to specify a custom Cassandra configuration,
  * you can do that with a setting:
- * 
+ *
  * {{{
- * PhantomKeys.cassandraConfig := baseDirectory.value / "config" / "cassandra.yaml"
+ * phantomCassandraConfig := baseDirectory.value / "config" / "cassandra.yaml"
  * }}}
  */
-object PhantomSbtPlugin extends Plugin {
+object PhantomSbtPlugin extends AutoPlugin {
 
-  
+  override def requires = sbt.plugins.JvmPlugin
+
   /**
    * Keys for all settings of this plugin.
    */
-  object PhantomKeys {
-    
-	  val startEmbeddedCassandra = TaskKey[Unit]("Starts embedded Cassandra")
-	  
-	  val cassandraConfig = SettingKey[Option[File]]("YAML file for Cassandra configuration")
-	
+  object autoImport {
+
+    val phantomStartEmbeddedCassandra = TaskKey[Unit]("Starts embedded Cassandra")
+
+    val phantomCassandraConfig = SettingKey[Option[File]]("YAML file for Cassandra configuration")
   }
-  
-  
-  /**
-   * Provides the default settings to be added to a build.
-   */
-  object PhantomPlugin {
-    import PhantomKeys._
-    
-    /**
-     * The default settings to be added to a build.
-     */
-    val defaults: Seq[Setting[_]] = Seq(
-        
-      cassandraConfig := None,
-      
-	    startEmbeddedCassandra := EmbeddedCassandra.start(cassandraConfig.value, streams.value.log),
-	    
-	    test in Test <<= (test in Test).dependsOn(startEmbeddedCassandra),
-	    
-	    fork := true
-	  )
-  }
-  
-  
+
+  import autoImport._
+
+
+  override def projectSettings = Seq(
+    phantomCassandraConfig := None,
+    phantomStartEmbeddedCassandra := EmbeddedCassandra.start(phantomCassandraConfig.value, streams.value.log),
+    test in Test <<= (test in Test).dependsOn(phantomStartEmbeddedCassandra),
+    fork := true
+  )
 }
 
 /**
@@ -118,11 +79,11 @@ object PhantomSbtPlugin extends Plugin {
  * Subsequent calls to `start` will be ignored.
  */
 object EmbeddedCassandra {
-  
+
   println("Initialize EmbeddedCassandra singleton.")
-  
+
   private var started: Boolean = false
-  
+
   /**
    * Starts Cassandra in embedded mode if it has not been
    * started yet.
@@ -141,7 +102,7 @@ object EmbeddedCassandra {
           config match {
               case Some(file) =>
                 logger.info("Starting Cassandra in embedded mode with configuration from $file.")
-                EmbeddedCassandraServerHelper.startEmbeddedCassandra(file, 
+                EmbeddedCassandraServerHelper.startEmbeddedCassandra(file,
                     EmbeddedCassandraServerHelper.DEFAULT_TMP_DIR, EmbeddedCassandraServerHelper.DEFAULT_STARTUP_TIMEOUT)
               case None =>
                 logger.info("Starting Cassandra in embedded mode with default configuration.")
@@ -155,6 +116,4 @@ object EmbeddedCassandra {
       }
     }
   }
-
-  
 }
