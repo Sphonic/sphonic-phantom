@@ -61,7 +61,7 @@ object AnalyticsServer extends Build {
 
   val sharedSettings: Seq[Def.Setting[_]] = Seq(
     organization := "com.sphonic",
-    version := "0.3.0",
+    version := "0.3.1",
     scalaVersion := ScalaVersion,
     resolvers ++= Seq(
       "sphonic nexus public (maven2)" at "https://nexus.sphoniclabs.net/nexus/content/groups/public",

@@ -69,6 +69,8 @@ object PhantomSbtPlugin extends AutoPlugin {
     phantomCassandraConfig := None,
     phantomStartEmbeddedCassandra := EmbeddedCassandra.start(phantomCassandraConfig.value, streams.value.log),
     test in Test <<= (test in Test).dependsOn(phantomStartEmbeddedCassandra),
+    testQuick in Test <<= (testQuick in Test).dependsOn(phantomStartEmbeddedCassandra),
+    testOnly in Test <<= (testOnly in Test).dependsOn(phantomStartEmbeddedCassandra),
     fork := true
   )
 }
