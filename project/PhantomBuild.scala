@@ -17,15 +17,17 @@ import sbt._
 import sbt.Keys._
 import sbtassembly.Plugin._
 import AssemblyKeys._
+import bintray.BintrayKeys._
 
 object AnalyticsServer extends Build {
 
   val ScalaVersion = "2.10.5"
-  val ScalaTestVersion = "2.2.4"
-  val datastaxDriverVersion = "2.1.3"
-  val finagleVersion = "6.25.0"
+  val ScalaTestVersion = "2.2.5"
+  val datastaxDriverVersion = "2.1.7.1"
+  val finagleVersion = "6.28.0"
 
   val publishSettings: Seq[Def.Setting[_]] = Seq(
+    bintrayOrganization := Some("Sphonic"),
     publishMavenStyle := true,
     publishTo := {
       val nexus = "https://nexus.sphoniclabs.net/nexus/content/repositories/"
@@ -61,7 +63,7 @@ object AnalyticsServer extends Build {
 
   val sharedSettings: Seq[Def.Setting[_]] = Seq(
     organization := "com.sphonic",
-    version := "0.3.1",
+    version := "0.3.2",
     scalaVersion := ScalaVersion,
     resolvers ++= Seq(
       "sphonic nexus public (maven2)" at "https://nexus.sphoniclabs.net/nexus/content/groups/public",
@@ -117,10 +119,10 @@ object AnalyticsServer extends Build {
     settings = Defaults.coreDefaultSettings ++ sharedSettings
   ).settings(
     name := "phantom-connector",
-    crossScalaVersions := Seq("2.10.5", "2.11.5"),
+    crossScalaVersions := Seq("2.10.5", "2.11.7"),
     libraryDependencies ++= Seq(
       "com.datastax.cassandra"  %  "cassandra-driver-core"  % datastaxDriverVersion,
-      "com.twitter"             %% "util-core"              % "6.20.0"
+      "com.twitter"             %% "util-core"              % "6.27.0"
     )
   )
 
@@ -132,7 +134,7 @@ object AnalyticsServer extends Build {
     name := "phantom-sbt",
     sbtPlugin := true,
     libraryDependencies ++= Seq(
-      "org.cassandraunit"      % "cassandra-unit"  % "2.0.2.2"  excludeAll (
+      "org.cassandraunit"      % "cassandra-unit"  % "2.1.9.2"  excludeAll (
         ExclusionRule("org.slf4j", "slf4j-log4j12"),
         ExclusionRule("org.slf4j", "slf4j-jdk14")
       )
