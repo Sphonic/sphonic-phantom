@@ -28,6 +28,7 @@ object AnalyticsServer extends Build {
 
   val publishSettings: Seq[Def.Setting[_]] = Seq(
     bintrayOrganization := Some("Sphonic"),
+    licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
     publishMavenStyle := true,
     publishTo := {
       val nexus = "https://nexus.sphoniclabs.net/nexus/content/repositories/"
