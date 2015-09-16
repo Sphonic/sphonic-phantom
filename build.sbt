@@ -23,10 +23,12 @@ val ScalaTestVersion = "2.2.5"
 val datastaxDriverVersion = "2.1.7.1"
 val finagleVersion = "6.28.0"
 
-crossScalaVersions := Seq("2.10.5", "2.11.7")
+val crossBuildSettings: Seq[Def.Setting[_]] = Seq(
+  crossScalaVersions := Seq("2.10.5", "2.11.7")
+)
 
 val publishSettings: Seq[Def.Setting[_]] = Seq(
-  bintrayOrganization := Some("Sphonic"),
+  bintrayOrganization := Some("sphonic"),
   licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
   publishMavenStyle := true,
   publishTo := {
@@ -116,7 +118,7 @@ lazy val root = Project(
 lazy val connector = Project(
   id = "connector",
   base = file("connector"),
-  settings = Defaults.coreDefaultSettings ++ sharedSettings
+  settings = Defaults.coreDefaultSettings ++ sharedSettings ++ crossBuildSettings
 ).settings(
   name := "phantom-connector",
   libraryDependencies ++= Seq(
