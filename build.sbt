@@ -65,7 +65,7 @@ val noPublish: Seq[Def.Setting[_]] = Seq(
 
 val sharedSettings: Seq[Def.Setting[_]] = Seq(
   organization := "com.sphonic",
-  version := "0.3.2",
+  version := "0.3.3",
   scalaVersion := ScalaVersion,
   resolvers ++= Seq(
     "sphonic nexus public (maven2)" at "https://nexus.sphoniclabs.net/nexus/content/groups/public",

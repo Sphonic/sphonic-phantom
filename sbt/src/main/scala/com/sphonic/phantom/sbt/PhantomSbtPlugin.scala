@@ -15,6 +15,9 @@
  */
 package com.sphonic.phantom.sbt
 
+import java.io.IOException
+
+import org.apache.cassandra.exceptions.TransportException
 import sbt._
 import sbt.Keys._
 import scala.concurrent.blocking
@@ -57,20 +60,28 @@ object PhantomSbtPlugin extends AutoPlugin {
    */
   object autoImport {
 
-    val phantomStartEmbeddedCassandra = TaskKey[Unit]("Starts embedded Cassandra")
-
     val phantomCassandraConfig = SettingKey[Option[File]]("YAML file for Cassandra configuration")
+
+    val phantomCleanEmbeddedCassandra = TaskKey[Unit]("Clean embedded Cassandra")
+
+    val phantomStartEmbeddedCassandra = TaskKey[Unit]("Starts embedded Cassandra")
   }
 
   import autoImport._
 
+  private def taskWithEmbeddedC(k: => TaskKey[Unit]): Def.Setting[Task[Unit]] =
+    k <<= (k).dependsOn(phantomStartEmbeddedCassandra).andFinally(phantomCleanEmbeddedCassandra)
+
+  private def inputTaskWithEmbeddedC(k: => InputKey[Unit]): Def.Setting[InputTask[Unit]] =
+    k <<= (k).dependsOn(phantomStartEmbeddedCassandra).andFinally(phantomCleanEmbeddedCassandra)
 
   override def projectSettings = Seq(
     phantomCassandraConfig := None,
+    phantomCleanEmbeddedCassandra := EmbeddedCassandra.clean(streams.value.log),
     phantomStartEmbeddedCassandra := EmbeddedCassandra.start(phantomCassandraConfig.value, streams.value.log),
-    test in Test <<= (test in Test).dependsOn(phantomStartEmbeddedCassandra),
-    testQuick in Test <<= (testQuick in Test).dependsOn(phantomStartEmbeddedCassandra),
-    testOnly in Test <<= (testOnly in Test).dependsOn(phantomStartEmbeddedCassandra),
+    taskWithEmbeddedC(test in Test),
+    inputTaskWithEmbeddedC(testQuick in Test),
+    inputTaskWithEmbeddedC(testOnly in Test),
     fork := true
   )
 }
@@ -91,6 +102,7 @@ object EmbeddedCassandra {
    * started yet.
    */
   def start (config: Option[File], logger: Logger): Unit = {
+    println("=== START Cassandra ===")
     this.synchronized {
       if (!started) {
         blocking {
@@ -117,5 +129,12 @@ object EmbeddedCassandra {
         logger.info("Embedded Cassandra has already been started")
       }
     }
+  }
+
+  def clean(logger: Logger) : Unit = {
+    if (started) try {
+      EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
+      logger.info("Cleaning Embedded Cassandra")
+    } catch { case _:TransportException|_:IOException => logger.info("Embedded Cassandra has already been cleaned and closed") }
   }
 }
